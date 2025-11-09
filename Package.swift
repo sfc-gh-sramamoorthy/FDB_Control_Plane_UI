@@ -38,7 +38,8 @@ let package = Package(
                 "ObjectViewModel.swift",
                 "LargeTextView.swift",
                 "CommandAction.swift",
-                "CommandDialogs.swift"
+                "CommandDialogs.swift",
+                "CustomConfirmationWindow.swift"
             ]
         )
     ]

@@ -356,49 +356,24 @@ struct ActionButtonsPanel: View {
     
     private func showLargeConfirmation(action: CommandAction, command: String) {
         DispatchQueue.main.async {
-            let alert = NSAlert()
-            alert.messageText = "⚠️ CRITICAL: Review Command"
-            alert.informativeText = """
-            Please carefully review this command before executing:
+            let confirmWindow = CustomConfirmationWindow(
+                title: "⚠️ CRITICAL: Review Command Before Executing",
+                command: command,
+                isDestructive: action.isDestructive
+            )
             
-            COMMAND:
-            \(command)
-            
-            Are you sure you want to execute it?
-            """
-            
-            // Customize appearance
-            alert.alertStyle = action.isDestructive ? .critical : .warning
-            alert.icon = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)
-            
-            // Add buttons
-            alert.addButton(withTitle: action.isDestructive ? "Execute Anyway" : "Execute")
-            alert.addButton(withTitle: "Cancel")
-            
-            // Make the alert window larger
-            alert.window.setContentSize(NSSize(width: 600, height: 300))
-            
-            // Style the text
-            if let messageTextField = alert.window.contentView?.subviews.first(where: { $0 is NSTextField }) as? NSTextField {
-                messageTextField.font = NSFont.systemFont(ofSize: 18, weight: .bold)
-            }
-            
-            // Find and style the informative text
-            if let informativeTextField = alert.window.contentView?.subviews.compactMap({ $0 as? NSTextField }).dropFirst().first {
-                informativeTextField.font = NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
-            }
-            
-            // Show alert
-            let response = alert.runModal()
-            
-            if response == .alertFirstButtonReturn {
-                print("🔵 Execute confirmed via NSAlert")
+            confirmWindow.onConfirm = {
+                print("🔵 Execute confirmed")
                 self.executeCommand()
-            } else {
-                print("🔵 Cancelled via NSAlert")
+            }
+            
+            confirmWindow.onCancel = {
+                print("🔵 Cancelled")
                 self.selectedAction = nil
                 self.builtCommand = ""
             }
+            
+            confirmWindow.showModal()
         }
     }
     
