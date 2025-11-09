@@ -179,40 +179,7 @@ struct DetailPanel: View {
     
     var body: some View {
         VSplitView {
-            // Top panel - Show All Tasks (SWAPPED ORDER)
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                HStack {
-                    Text("Show All Tasks")
-                        .font(.headline)
-                    Spacer()
-                    if viewModel.isLoadingTasks {
-                        ProgressView()
-                            .scaleEffect(0.6)
-                    }
-                }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                
-                // JSON display
-                if viewModel.showAllTasksJSON.isEmpty {
-                    VStack {
-                        Image(systemName: "list.bullet")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary)
-                        Text("No tasks loaded")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    LargeTextView(text: viewModel.showAllTasksJSON)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .focusable()
-                }
-            }
-            .frame(minHeight: 200)
-            
-            // Bottom panel - Cluster Info (SWAPPED ORDER)
+            // Top panel - Cluster Info
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack {
@@ -239,6 +206,39 @@ struct DetailPanel: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     LargeTextView(text: viewModel.clusterInfoJSON)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .focusable()
+                }
+            }
+            .frame(minHeight: 200)
+            
+            // Bottom panel - Show All Tasks
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                HStack {
+                    Text("Show All Tasks")
+                        .font(.headline)
+                    Spacer()
+                    if viewModel.isLoadingTasks {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                    }
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                
+                // JSON display
+                if viewModel.showAllTasksJSON.isEmpty {
+                    VStack {
+                        Image(systemName: "list.bullet")
+                            .font(.system(size: 40))
+                            .foregroundColor(.secondary)
+                        Text("No tasks loaded")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    LargeTextView(text: viewModel.showAllTasksJSON)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .focusable()
                 }
@@ -303,17 +303,23 @@ struct ActionButtonsPanel: View {
                 .padding(.top, 4)
             }
         }
-        .alert("⚠️ CRITICAL: Review Command Before Executing", isPresented: $showConfirmation, presenting: selectedAction) { action in
-            Button("Cancel", role: .cancel) {
-                selectedAction = nil
-                builtCommand = ""
+        .sheet(isPresented: $showConfirmation) {
+            if let action = selectedAction {
+                EnhancedConfirmationDialog(
+                    action: action,
+                    command: builtCommand,
+                    onConfirm: {
+                        showConfirmation = false
+                        print("🔵 Execute confirmed")
+                        executeCommand()
+                    },
+                    onCancel: {
+                        showConfirmation = false
+                        selectedAction = nil
+                        builtCommand = ""
+                    }
+                )
             }
-            Button("Execute", role: action.isDestructive ? .destructive : nil) {
-                print("🔵 Execute confirmed")
-                executeCommand()
-            }
-        } message: { action in
-            Text("Please carefully review this command:\n\n\(builtCommand)\n\nAre you sure you want to execute it?")
         }
         .alert(resultSuccess ? "Success" : "Error", isPresented: $showResult) {
             Button("OK") {
@@ -434,6 +440,98 @@ struct ExecutingDialog: View {
         }
         .padding(40)
         .frame(width: 500)
+    }
+}
+
+// MARK: - Enhanced Confirmation Dialog
+struct EnhancedConfirmationDialog: View {
+    let action: CommandAction
+    let command: String
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header with icon
+            HStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.orange)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CRITICAL")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.orange)
+                    Text("Review Command Before Executing")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.top, 20)
+            
+            Divider()
+            
+            // Command display with emphasis
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Command to Execute:")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+                
+                // Command in large, contrasting box
+                Text(command)
+                    .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .padding(20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.purple.opacity(0.8)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
+                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .textSelection(.enabled)
+            }
+            
+            // Warning message
+            HStack(spacing: 8) {
+                Image(systemName: "hand.raised.fill")
+                    .foregroundColor(.orange)
+                Text("Please carefully review the command above before proceeding.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 8)
+            
+            Divider()
+            
+            // Action buttons
+            HStack(spacing: 16) {
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .font(.system(size: 16, weight: .medium))
+                        .frame(minWidth: 120)
+                }
+                .keyboardShortcut(.escape)
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                
+                Button(action: onConfirm) {
+                    Text(action.isDestructive ? "Execute Anyway" : "Execute")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(minWidth: 120)
+                }
+                .keyboardShortcut(.return)
+                .buttonStyle(.borderedProminent)
+                .tint(action.isDestructive ? .orange : .blue)
+                .controlSize(.large)
+            }
+            .padding(.bottom, 8)
+        }
+        .padding(32)
+        .frame(width: 650)
     }
 }
 

@@ -161,15 +161,29 @@ extension CommandAction {
         )
     }
     
+    /// Abort all tasks
+    static func abortAllTasks(clusterName: String) -> CommandAction {
+        CommandAction(
+            name: "Abort All Tasks",
+            icon: "xmark.octagon",
+            description: "Abort all running tasks in the cluster",
+            command: {
+                "efdb cluster abort-all-tasks \(clusterName)"
+            },
+            isDestructive: true
+        )
+    }
+    
     // MARK: - Get All Actions
     
     static func allActions(for clusterName: String) -> [CommandAction] {
         [
+            pauseCluster(clusterName: clusterName),
+            unpauseCluster(clusterName: clusterName),
+            abortAllTasks(clusterName: clusterName),
             excludeMachine(clusterName: clusterName),
             includeMachine(clusterName: clusterName),
-            stopTopologyChange(clusterName: clusterName),
-            pauseCluster(clusterName: clusterName),
-            unpauseCluster(clusterName: clusterName)
+            stopTopologyChange(clusterName: clusterName)
         ]
     }
 }
