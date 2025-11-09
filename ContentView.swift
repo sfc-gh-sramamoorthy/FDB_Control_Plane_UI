@@ -303,23 +303,17 @@ struct ActionButtonsPanel: View {
                 .padding(.top, 4)
             }
         }
-        .sheet(isPresented: $showConfirmation) {
-            if let action = selectedAction {
-                EnhancedConfirmationDialog(
-                    action: action,
-                    command: builtCommand,
-                    onConfirm: {
-                        showConfirmation = false
-                        print("🔵 Execute confirmed")
-                        executeCommand()
-                    },
-                    onCancel: {
-                        showConfirmation = false
-                        selectedAction = nil
-                        builtCommand = ""
-                    }
-                )
+        .alert("⚠️ CRITICAL: Review Command", isPresented: $showConfirmation, presenting: selectedAction) { action in
+            Button("Cancel", role: .cancel) {
+                selectedAction = nil
+                builtCommand = ""
             }
+            Button("Execute", role: action.isDestructive ? .destructive : nil) {
+                print("🔵 Execute confirmed")
+                executeCommand()
+            }
+        } message: { action in
+            Text("⚠️ Please carefully review this command:\n\n📋 COMMAND:\n\n\(builtCommand)\n\n⚠️ Are you sure you want to execute it?")
         }
         .alert(resultSuccess ? "Success" : "Error", isPresented: $showResult) {
             Button("OK") {
