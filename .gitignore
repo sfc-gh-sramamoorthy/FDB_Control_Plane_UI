@@ -1,0 +1,40 @@
+# Xcode
+*.xcodeproj
+*.xcworkspace
+*.xcuserdata
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# User-specific files
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+
+# Backup directories (don't push backups to git)
+EFDBUI_backup_*/
+EFDBUI_WORKING_*/
+EFDBUI_BEFORE_*/
+EFDBUI_STABLE_*/
+
+# User data
+command_history.log
