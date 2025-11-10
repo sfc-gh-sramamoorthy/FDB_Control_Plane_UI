@@ -283,6 +283,7 @@ struct ActionButtonsPanel: View {
                             Image(systemName: action.icon)
                             Text(action.name)
                                 .font(.caption)
+                                .foregroundColor(action.isImplemented ? nil : .red)
                         }
                         .frame(maxWidth: .infinity)
                     }

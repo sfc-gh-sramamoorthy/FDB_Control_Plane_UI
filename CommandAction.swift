@@ -11,6 +11,7 @@ struct CommandAction: Identifiable {
     let buildCommand: ([String: String]) -> String
     let requiresConfirmation: Bool
     let isDestructive: Bool
+    let isImplemented: Bool
     
     /// Simple command without arguments
     init(
@@ -18,7 +19,8 @@ struct CommandAction: Identifiable {
         icon: String,
         description: String,
         command: @escaping () -> String,
-        isDestructive: Bool = false
+        isDestructive: Bool = false,
+        isImplemented: Bool = true
     ) {
         self.name = name
         self.icon = icon
@@ -28,6 +30,7 @@ struct CommandAction: Identifiable {
         self.buildCommand = { _ in command() }
         self.requiresConfirmation = true
         self.isDestructive = isDestructive
+        self.isImplemented = isImplemented
     }
     
     /// Command with arguments
@@ -37,7 +40,8 @@ struct CommandAction: Identifiable {
         description: String,
         arguments: [ArgumentPrompt],
         buildCommand: @escaping ([String: String]) -> String,
-        isDestructive: Bool = false
+        isDestructive: Bool = false,
+        isImplemented: Bool = true
     ) {
         self.name = name
         self.icon = icon
@@ -47,6 +51,7 @@ struct CommandAction: Identifiable {
         self.buildCommand = buildCommand
         self.requiresConfirmation = true
         self.isDestructive = isDestructive
+        self.isImplemented = isImplemented
     }
 }
 
@@ -174,6 +179,19 @@ extension CommandAction {
         )
     }
     
+    /// Reimport cluster
+    static func reimportCluster(clusterName: String) -> CommandAction {
+        CommandAction(
+            name: "Reimport Cluster",
+            icon: "arrow.triangle.2.circlepath",
+            description: "Reimport the cluster configuration",
+            command: {
+                "efdb cluster reimport \(clusterName)"
+            },
+            isDestructive: false
+        )
+    }
+    
     // MARK: - Get All Actions
     
     static func allActions(for clusterName: String) -> [CommandAction] {
@@ -183,7 +201,8 @@ extension CommandAction {
             abortAllTasks(clusterName: clusterName),
             excludeMachine(clusterName: clusterName),
             includeMachine(clusterName: clusterName),
-            stopTopologyChange(clusterName: clusterName)
+            stopTopologyChange(clusterName: clusterName),
+            reimportCluster(clusterName: clusterName)
         ]
     }
 }
