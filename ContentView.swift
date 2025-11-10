@@ -313,7 +313,7 @@ struct ActionButtonsPanel: View {
                     .foregroundColor(.secondary)
                     .italic()
             } else {
-                ForEach(CommandAction.allActions(for: viewModel.clusterName)) { action in
+                ForEach(CommandAction.allActions(for: viewModel.clusterName, deploymentName: viewModel.deploymentName)) { action in
                     Button(action: {
                         print("🔵 Button tapped: \(action.name)")
                         handleActionTap(action)

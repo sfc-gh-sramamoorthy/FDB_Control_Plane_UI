@@ -192,10 +192,33 @@ extension CommandAction {
         )
     }
     
+    /// Mark instance unreachable
+    static func markInstanceUnreachable(clusterName: String, deploymentName: String) -> CommandAction {
+        CommandAction(
+            name: "Mark Instance Unreachable",
+            icon: "exclamationmark.triangle",
+            description: "Override and mark an instance as unresponsive",
+            arguments: [
+                ArgumentPrompt(
+                    key: "instance-id",
+                    label: "Instance ID",
+                    placeholder: "i-0123456789abcdef0",
+                    isRequired: true,
+                    helpText: "The ID of the instance to mark as unreachable"
+                )
+            ],
+            buildCommand: { args in
+                guard let instanceId = args["instance-id"] else { return "" }
+                return "efdb account --account=\(deploymentName) exec --query \"select system\\$EFDB_OPERATOR_OVERRIDE_UNRESPONSIVE_HOST('\(clusterName)', '\(instanceId)');\""
+            },
+            isDestructive: true
+        )
+    }
+    
     // MARK: - Get All Actions
     
-    static func allActions(for clusterName: String) -> [CommandAction] {
-        [
+    static func allActions(for clusterName: String, deploymentName: String = "") -> [CommandAction] {
+        var actions = [
             pauseCluster(clusterName: clusterName),
             unpauseCluster(clusterName: clusterName),
             abortAllTasks(clusterName: clusterName),
@@ -204,6 +227,13 @@ extension CommandAction {
             stopTopologyChange(clusterName: clusterName),
             reimportCluster(clusterName: clusterName)
         ]
+        
+        // Only add mark instance unreachable if deployment name is provided
+        if !deploymentName.trimmingCharacters(in: .whitespaces).isEmpty {
+            actions.append(markInstanceUnreachable(clusterName: clusterName, deploymentName: deploymentName))
+        }
+        
+        return actions
     }
 }
 
