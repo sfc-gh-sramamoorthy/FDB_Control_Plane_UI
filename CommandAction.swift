@@ -209,6 +209,7 @@ extension CommandAction {
             ],
             buildCommand: { args in
                 guard let instanceId = args["instance-id"] else { return "" }
+                // Format: efdb account --account=deployment exec --query "select system\$FUNC('cluster', 'instance');"
                 return "efdb account --account=\(deploymentName) exec --query \"select system\\$EFDB_OPERATOR_OVERRIDE_UNRESPONSIVE_HOST('\(clusterName)', '\(instanceId)');\""
             },
             isDestructive: true
