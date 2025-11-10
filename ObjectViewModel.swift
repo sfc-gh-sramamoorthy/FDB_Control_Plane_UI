@@ -19,11 +19,14 @@ class ObjectViewModel: ObservableObject {
     
     @Published var clusterInfoJSON: String = ""
     @Published var showAllTasksJSON: String = ""
+    @Published var statusJSON: String = ""
     @Published var isLoadingClusterInfo: Bool = false
     @Published var isLoadingTasks: Bool = false
+    @Published var isLoadingStatus: Bool = false
     @Published var lastUpdateTime: Date?
     @Published var maxLinesClusterInfo: String = "0"  // 0 = unlimited (NSTextView can handle it!)
     @Published var maxLinesTasks: String = "0"        // 0 = unlimited
+    @Published var maxLinesStatus: String = "0"       // 0 = unlimited
     
     private var refreshTimer: Timer?
     
@@ -177,10 +180,65 @@ class ObjectViewModel: ObservableObject {
         isLoadingTasks = false
     }
     
-    /// Fetch both cluster info and tasks with delay between them
+    /// Fetches status-json information
+    func fetchStatusJSON() async {
+        // SECURITY: Validate inputs before processing
+        guard !clusterName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            statusJSON = "{\"error\": \"Cluster name is required\"}"
+            return
+        }
+        
+        isLoadingStatus = true
+        
+        // Build command string for display
+        let commandString = "efdb cluster status-json \(clusterName)"
+        
+        // Execute efdb cluster status-json command
+        do {
+            let output = try await executeEfdbCommand(subcommand: "cluster", action: "status-json", target: clusterName)
+            
+            // Apply line limiting if specified
+            let finalOutput: String
+            if let maxLines = Int(maxLinesStatus), maxLines > 0 {
+                finalOutput = limitJSONLines(output, maxLines: maxLines)
+            } else {
+                finalOutput = output
+            }
+            
+            // Format with command header
+            statusJSON = formatCommandOutput(command: commandString, output: finalOutput)
+            
+            // Log to history file
+            logCommandHistory(command: commandString, output: finalOutput)
+            
+            lastUpdateTime = Date()
+        } catch {
+            // Handle error appropriately
+            print("Status JSON error: \(error)")
+            let errorMsg = """
+            {
+              "error": "Failed to fetch status JSON",
+              "details": "\(error.localizedDescription)",
+              "cluster": "\(clusterName)"
+            }
+            """
+            statusJSON = formatCommandOutput(command: commandString, output: errorMsg)
+            logCommandHistory(command: commandString, output: "", error: error.localizedDescription)
+        }
+        
+        isLoadingStatus = false
+    }
+    
+    /// Fetch all data: tasks, status, and cluster info with delays between them
     func fetchAll() async {
         // Fetch show-all-tasks FIRST
         await fetchShowAllTasks()
+        
+        // Wait 10 seconds before fetching status-json
+        try? await Task.sleep(nanoseconds: 10_000_000_000)
+        
+        // Fetch status-json
+        await fetchStatusJSON()
         
         // Wait 10 seconds before fetching cluster info
         try? await Task.sleep(nanoseconds: 10_000_000_000)
@@ -448,6 +506,7 @@ class ObjectViewModel: ObservableObject {
     func clearData() {
         clusterInfoJSON = ""
         showAllTasksJSON = ""
+        statusJSON = ""
         lastUpdateTime = nil
     }
 }

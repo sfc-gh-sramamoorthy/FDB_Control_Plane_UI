@@ -62,22 +62,28 @@ struct InputPanel: View {
                         .textFieldStyle(.roundedBorder)
                 }
                 
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Max Lines (Cluster Info, 0=all):")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        TextField("Lines", text: $viewModel.maxLinesClusterInfo)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Max Lines (Tasks, 0=all):")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        TextField("Lines", text: $viewModel.maxLinesTasks)
-                            .textFieldStyle(.roundedBorder)
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Max Lines (Cluster Info, 0=all):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Lines", text: $viewModel.maxLinesClusterInfo)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Max Lines (Status JSON, 0=all):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Lines", text: $viewModel.maxLinesStatus)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Max Lines (Tasks, 0=all):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Lines", text: $viewModel.maxLinesTasks)
+                        .textFieldStyle(.roundedBorder)
                 }
                 
                 Toggle("Auto Refresh", isOn: $viewModel.autoRefresh)
@@ -101,7 +107,7 @@ struct InputPanel: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks)
+                .disabled(viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks || viewModel.isLoadingStatus)
                 
                 Button(action: {
                     viewModel.clearData()
@@ -124,7 +130,7 @@ struct InputPanel: View {
             Spacer()
             
             // Status indicator
-            if viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks {
+            if viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks || viewModel.isLoadingStatus {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.7)
@@ -211,7 +217,40 @@ struct DetailPanel: View {
                         .focusable()
                 }
             }
-            .frame(minHeight: 200)
+            .frame(minHeight: 150)
+            
+            // Middle panel - Status JSON
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                HStack {
+                    Text("Status JSON")
+                        .font(.headline)
+                    Spacer()
+                    if viewModel.isLoadingStatus {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                    }
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                
+                // JSON display
+                if viewModel.statusJSON.isEmpty {
+                    VStack {
+                        Image(systemName: "chart.bar.doc.horizontal")
+                            .font(.system(size: 40))
+                            .foregroundColor(.secondary)
+                        Text("No status loaded")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    LargeTextView(text: viewModel.statusJSON)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .focusable()
+                }
+            }
+            .frame(minHeight: 150)
             
             // Bottom panel - Show All Tasks
             VStack(alignment: .leading, spacing: 0) {
@@ -244,7 +283,7 @@ struct DetailPanel: View {
                         .focusable()
                 }
             }
-            .frame(minHeight: 200)
+            .frame(minHeight: 150)
         }
     }
 }
