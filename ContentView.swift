@@ -292,8 +292,6 @@ struct DetailPanel: View {
 struct ActionButtonsPanel: View {
     @ObservedObject var viewModel: ObjectViewModel
     @State private var selectedAction: CommandAction?
-    @State private var showArgumentInput = false
-    @State private var showConfirmation = false
     @State private var showResult = false
     @State private var isExecuting = false
     @State private var argumentValues: [String: String] = [:]
@@ -356,41 +354,47 @@ struct ActionButtonsPanel: View {
         } message: {
             Text(resultSuccess ? (resultOutput.isEmpty ? "Command executed successfully" : resultOutput) : (resultError ?? "Unknown error"))
         }
-        .sheet(isPresented: $showArgumentInput) {
-            if let action = selectedAction {
-                ArgumentInputDialog(
-                    action: action,
-                    onConfirm: { args in
-                        print("🔵 Arguments confirmed: \(args)")
-                        argumentValues = args
-                        showArgumentInput = false
-                        builtCommand = action.buildCommand(args)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            showConfirmation = true
-                        }
-                    },
-                    onCancel: {
-                        print("🔵 Arguments cancelled")
-                        showArgumentInput = false
-                        selectedAction = nil
-                    }
-                )
-            }
-        }
     }
     
     private func handleActionTap(_ action: CommandAction) {
         print("🔵 handleActionTap: \(action.name)")
+        print("🔵 requiresArguments: \(action.requiresArguments)")
+        
         selectedAction = action
         
         if action.requiresArguments {
-            print("🔵 Showing argument input")
-            showArgumentInput = true
+            print("🔵 Showing custom input window")
+            showCustomInputWindow(action: action)
         } else {
             // Build command directly
             builtCommand = action.buildCommand([:])
             print("🔵 Built command: \(builtCommand)")
             showLargeConfirmation(action: action, command: builtCommand)
+        }
+    }
+    
+    private func showCustomInputWindow(action: CommandAction) {
+        DispatchQueue.main.async {
+            let inputWindow = CustomInputWindow(
+                title: action.name,
+                description: action.description,
+                arguments: action.argumentPrompts
+            )
+            
+            inputWindow.onConfirm = { args in
+                print("🔵 Arguments received: \(args)")
+                self.argumentValues = args
+                self.builtCommand = action.buildCommand(args)
+                print("🔵 Built command: \(self.builtCommand)")
+                self.showLargeConfirmation(action: action, command: self.builtCommand)
+            }
+            
+            inputWindow.onCancel = {
+                print("🔵 Input cancelled")
+                self.selectedAction = nil
+            }
+            
+            inputWindow.showModal()
         }
     }
     
