@@ -14,6 +14,28 @@ struct ContentView: View {
             DetailPanel(viewModel: viewModel)
         }
         .navigationTitle("EFDB UI")
+        .onAppear {
+            setupKeyboardShortcuts()
+        }
+    }
+    
+    private func setupKeyboardShortcuts() {
+        // Add keyboard shortcuts for font size
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.modifierFlags.contains(.command) {
+                if event.charactersIgnoringModifiers == "+" || event.charactersIgnoringModifiers == "=" {
+                    viewModel.increaseFontSize()
+                    return nil
+                } else if event.charactersIgnoringModifiers == "-" {
+                    viewModel.decreaseFontSize()
+                    return nil
+                } else if event.charactersIgnoringModifiers == "0" {
+                    viewModel.resetFontSize()
+                    return nil
+                }
+            }
+            return event
+        }
     }
 }
 
@@ -88,6 +110,42 @@ struct InputPanel: View {
                 
                 Toggle("Auto Refresh", isOn: $viewModel.autoRefresh)
                     .toggleStyle(.switch)
+                
+                // Font size controls
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Font Size:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    HStack(spacing: 8) {
+                        Button(action: { viewModel.decreaseFontSize() }) {
+                            Text("-")
+                                .font(.system(size: 16, weight: .bold))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(.bordered)
+                        .help("Decrease font size (Cmd -)")
+                        
+                        Text("\(Int(viewModel.fontSize))pt")
+                            .font(.caption)
+                            .frame(minWidth: 40)
+                            .multilineTextAlignment(.center)
+                        
+                        Button(action: { viewModel.increaseFontSize() }) {
+                            Text("+")
+                                .font(.system(size: 16, weight: .bold))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(.bordered)
+                        .help("Increase font size (Cmd +)")
+                        
+                        Button(action: { viewModel.resetFontSize() }) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(.bordered)
+                        .help("Reset to default (Cmd 0)")
+                    }
+                }
             }
             
             Divider()
@@ -214,7 +272,7 @@ struct DetailPanel: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    LargeTextView(text: viewModel.clusterInfoJSON)
+                    LargeTextView(text: viewModel.clusterInfoJSON, fontSize: viewModel.fontSize)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .focusable()
                 }
@@ -250,7 +308,7 @@ struct DetailPanel: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    LargeTextView(text: viewModel.statusJSON)
+                    LargeTextView(text: viewModel.statusJSON, fontSize: viewModel.fontSize)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .focusable()
                 }
@@ -286,7 +344,7 @@ struct DetailPanel: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    LargeTextView(text: viewModel.showAllTasksJSON)
+                    LargeTextView(text: viewModel.showAllTasksJSON, fontSize: viewModel.fontSize)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .focusable()
                 }

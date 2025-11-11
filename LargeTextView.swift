@@ -4,11 +4,15 @@ import AppKit
 /// A high-performance text view for displaying large amounts of text with search support
 struct LargeTextView: NSViewRepresentable {
     let text: String
-    let font: NSFont
+    let fontSize: CGFloat
     
-    init(text: String, font: NSFont = .monospacedSystemFont(ofSize: 11, weight: .regular)) {
+    init(text: String, fontSize: CGFloat = 13.0) {
         self.text = text
-        self.font = font
+        self.fontSize = fontSize
+    }
+    
+    var font: NSFont {
+        .monospacedSystemFont(ofSize: fontSize, weight: .regular)
     }
     
     func makeNSView(context: Context) -> NSScrollView {
@@ -65,6 +69,11 @@ struct LargeTextView: NSViewRepresentable {
         
         if textView.string != text {
             textView.string = text
+        }
+        
+        // Update font size if it changed
+        if textView.font?.pointSize != fontSize {
+            textView.font = font
         }
     }
 }

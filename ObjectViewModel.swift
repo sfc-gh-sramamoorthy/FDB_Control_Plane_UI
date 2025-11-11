@@ -27,6 +27,7 @@ class ObjectViewModel: ObservableObject {
     @Published var maxLinesClusterInfo: String = "0"  // 0 = unlimited (NSTextView can handle it!)
     @Published var maxLinesTasks: String = "0"        // 0 = unlimited
     @Published var maxLinesStatus: String = "0"       // 0 = unlimited
+    @Published var fontSize: CGFloat = 13.0           // Font size for text views
     
     private var refreshTimer: Timer?
     
@@ -508,6 +509,20 @@ class ObjectViewModel: ObservableObject {
         showAllTasksJSON = ""
         statusJSON = ""
         lastUpdateTime = nil
+    }
+    
+    // MARK: - Font Size Controls
+    
+    func increaseFontSize() {
+        fontSize = min(fontSize + 2, 32)  // Max 32pt
+    }
+    
+    func decreaseFontSize() {
+        fontSize = max(fontSize - 2, 8)   // Min 8pt
+    }
+    
+    func resetFontSize() {
+        fontSize = 13.0  // Default
     }
 }
 
