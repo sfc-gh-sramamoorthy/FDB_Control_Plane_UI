@@ -106,24 +106,48 @@ extension CommandAction {
         )
     }
     
-    /// Include a machine in the cluster
+    /// Include a machine in the cluster using sanssh
     static func includeMachine(clusterName: String) -> CommandAction {
         CommandAction(
-            name: "Include Machine",
+            name: "sanssh include",
             icon: "checkmark.circle",
-            description: "Add a machine back to the cluster",
+            description: "Add a machine back to the cluster using sanssh fdbexec",
             arguments: [
                 ArgumentPrompt(
-                    key: "machine",
-                    label: "Machine IP/ID",
-                    placeholder: "10.0.0.1 or machine-id",
+                    key: "deployment-name",
+                    label: "Deployment Name",
+                    placeholder: "e.g., prod1",
                     isRequired: true,
-                    helpText: "The IP address or ID of the machine to include"
+                    helpText: "The deployment name for sanssh --deployment parameter"
+                ),
+                ArgumentPrompt(
+                    key: "host-ip-address",
+                    label: "Host IP Address",
+                    placeholder: "e.g., 10.0.0.1",
+                    isRequired: true,
+                    helpText: "The IP address of the host where fdbcli will be executed (--targets parameter)"
+                ),
+                ArgumentPrompt(
+                    key: "jira",
+                    label: "JIRA Ticket",
+                    placeholder: "e.g., FDB-1234",
+                    isRequired: true,
+                    helpText: "JIRA ticket number for justification (used in --justification)"
+                ),
+                ArgumentPrompt(
+                    key: "target-ip-address",
+                    label: "Target IP Address to Include",
+                    placeholder: "e.g., 10.0.0.2 or 'all'",
+                    isRequired: true,
+                    helpText: "The IP address of machine(s) to include in the cluster. Use 'all' to include all hosts in exclude list"
                 )
             ],
             buildCommand: { args in
-                guard let machine = args["machine"] else { return "" }
-                return "efdb cluster include \(clusterName) \(machine)"
+                guard let deploymentName = args["deployment-name"],
+                      let hostIp = args["host-ip-address"],
+                      let jira = args["jira"],
+                      let targetIp = args["target-ip-address"] else { return "" }
+                return "sanssh --deployment \(deploymentName) --targets=\(hostIp) --justification \"JIRA \(jira)\" fdbexec run /usr/bin/fdbcli --exec \"include \(targetIp)\""
             }
         )
     }
