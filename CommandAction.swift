@@ -128,11 +128,11 @@ extension CommandAction {
                     helpText: "The IP address of the host where fdbcli will be executed (--targets parameter)"
                 ),
                 ArgumentPrompt(
-                    key: "jira",
-                    label: "JIRA Ticket",
-                    placeholder: "e.g., FDB-1234",
+                    key: "justification",
+                    label: "Justification",
+                    placeholder: "e.g., SNOW-2676933 PSAC-FDB_Investigation",
                     isRequired: true,
-                    helpText: "JIRA ticket number for justification (used in --justification)"
+                    helpText: "Full justification string including ticket number and category (e.g., SNOW-2676933 PSAC-FDB_Investigation)"
                 ),
                 ArgumentPrompt(
                     key: "target-ip-address",
@@ -145,9 +145,9 @@ extension CommandAction {
             buildCommand: { args in
                 guard let deploymentName = args["deployment-name"],
                       let hostIp = args["host-ip-address"],
-                      let jira = args["jira"],
+                      let justification = args["justification"],
                       let targetIp = args["target-ip-address"] else { return "" }
-                return "sanssh --deployment \(deploymentName) --targets=\(hostIp) --justification \"JIRA \(jira)\" fdbexec run /usr/bin/fdbcli --exec \"include \(targetIp)\""
+                return "sanssh --deployment \(deploymentName) --targets=\(hostIp) --justification \"\(justification)\" fdbexec run /usr/bin/fdbcli --exec \"include \(targetIp)\""
             }
         )
     }
