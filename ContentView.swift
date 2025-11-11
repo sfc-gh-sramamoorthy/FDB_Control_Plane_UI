@@ -192,14 +192,16 @@ struct DetailPanel: View {
                 HStack {
                     Text("Cluster Info")
                         .font(.headline)
+                        .foregroundColor(.primary)
                     Spacer()
                     if viewModel.isLoadingClusterInfo {
                         ProgressView()
                             .scaleEffect(0.6)
                     }
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.blue.opacity(0.15))
                 
                 // JSON display
                 if viewModel.clusterInfoJSON.isEmpty {
@@ -218,6 +220,7 @@ struct DetailPanel: View {
                 }
             }
             .frame(minHeight: 150)
+            .border(Color.blue.opacity(0.3), width: 1)
             
             // Middle panel - Status JSON
             VStack(alignment: .leading, spacing: 0) {
@@ -225,14 +228,16 @@ struct DetailPanel: View {
                 HStack {
                     Text("Status JSON")
                         .font(.headline)
+                        .foregroundColor(.primary)
                     Spacer()
                     if viewModel.isLoadingStatus {
                         ProgressView()
                             .scaleEffect(0.6)
                     }
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.orange.opacity(0.15))
                 
                 // JSON display
                 if viewModel.statusJSON.isEmpty {
@@ -251,6 +256,7 @@ struct DetailPanel: View {
                 }
             }
             .frame(minHeight: 150)
+            .border(Color.orange.opacity(0.3), width: 1)
             
             // Bottom panel - Show All Tasks
             VStack(alignment: .leading, spacing: 0) {
@@ -258,14 +264,16 @@ struct DetailPanel: View {
                 HStack {
                     Text("Show All Tasks")
                         .font(.headline)
+                        .foregroundColor(.primary)
                     Spacer()
                     if viewModel.isLoadingTasks {
                         ProgressView()
                             .scaleEffect(0.6)
                     }
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.green.opacity(0.15))
                 
                 // JSON display
                 if viewModel.showAllTasksJSON.isEmpty {
@@ -284,6 +292,7 @@ struct DetailPanel: View {
                 }
             }
             .frame(minHeight: 150)
+            .border(Color.green.opacity(0.3), width: 1)
         }
     }
 }
