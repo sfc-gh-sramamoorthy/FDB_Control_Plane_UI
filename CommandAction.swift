@@ -133,9 +133,9 @@ extension CommandAction {
         CommandAction(
             name: "Stop Topology Change",
             icon: "stop.circle",
-            description: "Prevent topology changes in the cluster",
+            description: "Prevent topology changes in the cluster (wiggle-stop)",
             command: {
-                "efdb cluster stop-topology-change \(clusterName)"
+                "efdb cluster wiggle-stop \(clusterName)"
             },
             isDestructive: true
         )
