@@ -247,6 +247,29 @@ extension CommandAction {
         )
     }
     
+    /// Replace instance
+    static func replaceInstance(clusterName: String) -> CommandAction {
+        CommandAction(
+            name: "Replace Instance",
+            icon: "arrow.triangle.swap",
+            description: "Replace an instance in the cluster",
+            arguments: [
+                ArgumentPrompt(
+                    key: "ip-address",
+                    label: "IP Address",
+                    placeholder: "e.g., 10.0.0.1",
+                    isRequired: true,
+                    helpText: "The IP address of the instance to replace"
+                )
+            ],
+            buildCommand: { args in
+                guard let ipAddress = args["ip-address"] else { return "" }
+                return "efdb cluster replace-instance --ip \(ipAddress) \(clusterName)"
+            },
+            isDestructive: true
+        )
+    }
+    
     // MARK: - Get All Actions
     
     static func allActions(for clusterName: String, deploymentName: String = "") -> [CommandAction] {
@@ -258,7 +281,8 @@ extension CommandAction {
             includeMachine(clusterName: clusterName),
             stopTopologyChange(clusterName: clusterName),
             reimportCluster(clusterName: clusterName),
-            markInstanceUnreachable(clusterName: clusterName)
+            markInstanceUnreachable(clusterName: clusterName),
+            replaceInstance(clusterName: clusterName)
         ]
     }
 }
