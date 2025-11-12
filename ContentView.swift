@@ -44,10 +44,11 @@ struct InputPanel: View {
     @ObservedObject var viewModel: ObjectViewModel
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("EFDB Configuration")
-                .font(.headline)
-                .padding(.top)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("EFDB Configuration")
+                    .font(.headline)
+                    .padding(.top)
             
             // Input fields
             VStack(alignment: .leading, spacing: 12) {
@@ -249,8 +250,9 @@ struct InputPanel: View {
                 .buttonStyle(.link)
             }
             .padding(.vertical, 4)
+            }
+            .padding()
         }
-        .padding()
     }
 }
 
