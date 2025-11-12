@@ -262,12 +262,12 @@ class ObjectViewModel: ObservableObject {
         let fromTimeStr = dateFormatter.string(from: fromTime)
         
         // Build command string for display
-        let query = "select SYSTEM\\$EFDB_GET_CLUSTER_EVENTS('\(clusterName)', 'true', '\(fromTimeStr)', '\(toTimeStr)');"
+        let query = "select SYSTEM\\$EFDB_GET_CLUSTER_EVENTS('\(clusterName)', true, '\(fromTimeStr)', '\(toTimeStr)');"
         let commandString = "efdb account --account=\(deploymentName) exec --query \"\(query)\""
         
         // Execute command
         do {
-            let fullCommand = "efdb account --account=\(deploymentName) exec --query \"select SYSTEM\\$EFDB_GET_CLUSTER_EVENTS('\(clusterName)', 'true', '\(fromTimeStr)', '\(toTimeStr)');\""
+            let fullCommand = "efdb account --account=\(deploymentName) exec --query \"select SYSTEM\\$EFDB_GET_CLUSTER_EVENTS('\(clusterName)', true, '\(fromTimeStr)', '\(toTimeStr)');\""
             
             let output = try await executeCommandAction(fullCommand)
             
