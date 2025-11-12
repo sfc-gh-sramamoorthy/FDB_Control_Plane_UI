@@ -260,77 +260,81 @@ struct DetailPanel: View {
     
     var body: some View {
         VSplitView {
-            // Top panel - Cluster Info
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                HStack {
-                    Text("Cluster Info")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    Spacer()
-                    if viewModel.isLoadingClusterInfo {
-                        ProgressView()
-                            .scaleEffect(0.6)
+            // Top panel - Split into Cluster Info and Status JSON
+            HSplitView {
+                // Left: Cluster Info
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header
+                    HStack {
+                        Text("Cluster Info")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if viewModel.isLoadingClusterInfo {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        }
                     }
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color.blue.opacity(0.15))
-                
-                // JSON display
-                if viewModel.clusterInfoJSON.isEmpty {
-                    VStack {
-                        Image(systemName: "info.circle")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary)
-                        Text("No cluster info loaded")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    LargeTextView(text: viewModel.clusterInfoJSON, fontSize: viewModel.fontSize)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.blue.opacity(0.15))
+                    
+                    // JSON display
+                    if viewModel.clusterInfoJSON.isEmpty {
+                        VStack {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text("No cluster info loaded")
+                                .foregroundColor(.secondary)
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .focusable()
+                    } else {
+                        LargeTextView(text: viewModel.clusterInfoJSON, fontSize: viewModel.fontSize)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .focusable()
+                    }
                 }
+                .frame(minWidth: 200, minHeight: 150)
+                .border(Color.blue.opacity(0.3), width: 1)
+                
+                // Right: Status JSON
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header
+                    HStack {
+                        Text("Status JSON")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if viewModel.isLoadingStatus {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.orange.opacity(0.15))
+                    
+                    // JSON display
+                    if viewModel.statusJSON.isEmpty {
+                        VStack {
+                            Image(systemName: "chart.bar.doc.horizontal")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text("No status loaded")
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        LargeTextView(text: viewModel.statusJSON, fontSize: viewModel.fontSize)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .focusable()
+                    }
+                }
+                .frame(minWidth: 200, minHeight: 150)
+                .border(Color.orange.opacity(0.3), width: 1)
             }
             .frame(minHeight: 150)
-            .border(Color.blue.opacity(0.3), width: 1)
-            
-            // Middle panel - Status JSON
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                HStack {
-                    Text("Status JSON")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    Spacer()
-                    if viewModel.isLoadingStatus {
-                        ProgressView()
-                            .scaleEffect(0.6)
-                    }
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color.orange.opacity(0.15))
-                
-                // JSON display
-                if viewModel.statusJSON.isEmpty {
-                    VStack {
-                        Image(systemName: "chart.bar.doc.horizontal")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary)
-                        Text("No status loaded")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    LargeTextView(text: viewModel.statusJSON, fontSize: viewModel.fontSize)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .focusable()
-                }
-            }
-            .frame(minHeight: 150)
-            .border(Color.orange.opacity(0.3), width: 1)
             
             // Bottom panel - Split into Show All Tasks and Cluster Events
             HSplitView {
