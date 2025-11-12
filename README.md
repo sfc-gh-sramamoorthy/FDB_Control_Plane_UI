@@ -1,19 +1,59 @@
 # EFDB UI
 
-A minimal multi-panel macOS application built with SwiftUI for managing and displaying object information.
+A multi-panel macOS application built with SwiftUI for managing FoundationDB clusters.
 
 ## Features
 
-- **Multi-panel Interface**: Clean split view with input controls on the left and detailed information on the right
-- **Flexible Inputs**: Currently supports 2 input fields, easily extensible for more
-- **Auto-refresh**: Configurable automatic refresh with customizable interval
-- **Manual Refresh**: On-demand data refresh capability
+- **2x2 Grid Layout**: Four panels for comprehensive cluster monitoring
+  - Cluster Info (top-left)
+  - Status JSON (top-right)
+  - Show All Tasks (bottom-left)
+  - Cluster Events (bottom-right)
+- **Real-time Monitoring**: Auto-refresh with configurable intervals
+- **Cluster Events**: View cluster events with configurable time ranges
+- **Font Size Controls**: Adjust text size with Cmd+, Cmd-, Cmd0
+- **Action Buttons**: Execute cluster management commands with confirmations
 - **Native macOS UI**: Built with SwiftUI for a native look and feel
+
+## Quick Install
+
+**Recommended Method (via Homebrew):**
+
+```bash
+# Download and install locally
+curl -O https://raw.githubusercontent.com/sfc-gh-sramamoorthy/FDB_Control_Plane_UI/main/efdbui.rb
+brew install --cask ./efdbui.rb
+rm efdbui.rb
+```
+
+This will automatically:
+1. Install EFDBUI.app to `/Applications/`
+2. Install the `efdb` CLI tool
+
+**Alternative: Direct Download**
+
+```bash
+# From GitHub releases
+wget https://github.com/sfc-gh-sramamoorthy/FDB_Control_Plane_UI/releases/download/v1.0.2/EFDBUI-1.0.2.tar.gz
+tar -xzf EFDBUI-1.0.2.tar.gz
+cp -R EFDBUI.app /Applications/
+brew install efdb
+```
+
+**Via S3 (Internal):**
+
+```bash
+aws s3 cp s3://sramamoorthy-backup/EFDBUI/EFDBUI-1.0.2.tar.gz .
+tar -xzf EFDBUI-1.0.2.tar.gz
+cp -R EFDBUI.app /Applications/
+brew install efdb
+```
 
 ## Requirements
 
 - macOS 13.0 (Ventura) or later
-- Swift 5.9 or later
+- `efdb` CLI tool (automatically installed with Homebrew method)
+- Swift 5.9 or later (for building from source)
 - Xcode 15.0 or later (for Xcode-based builds)
 
 ## Building the App
