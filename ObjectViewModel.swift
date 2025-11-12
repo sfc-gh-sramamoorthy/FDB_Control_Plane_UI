@@ -20,14 +20,18 @@ class ObjectViewModel: ObservableObject {
     @Published var clusterInfoJSON: String = ""
     @Published var showAllTasksJSON: String = ""
     @Published var statusJSON: String = ""
+    @Published var clusterEventsJSON: String = ""
     @Published var isLoadingClusterInfo: Bool = false
     @Published var isLoadingTasks: Bool = false
     @Published var isLoadingStatus: Bool = false
+    @Published var isLoadingEvents: Bool = false
     @Published var lastUpdateTime: Date?
     @Published var maxLinesClusterInfo: String = "0"  // 0 = unlimited (NSTextView can handle it!)
     @Published var maxLinesTasks: String = "0"        // 0 = unlimited
     @Published var maxLinesStatus: String = "0"       // 0 = unlimited
+    @Published var maxLinesEvents: String = "0"       // 0 = unlimited
     @Published var fontSize: CGFloat = 13.0           // Font size for text views
+    @Published var eventsDurationMinutes: Int = 15    // Duration for cluster events (in minutes)
     
     private var refreshTimer: Timer?
     
@@ -230,17 +234,88 @@ class ObjectViewModel: ObservableObject {
         isLoadingStatus = false
     }
     
-    /// Fetch all data: tasks, status, and cluster info simultaneously
+    /// Fetches cluster events
+    func fetchClusterEvents() async {
+        // SECURITY: Validate inputs before processing
+        guard !clusterName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            clusterEventsJSON = "{\"error\": \"Cluster name is required\"}"
+            return
+        }
+        
+        guard !deploymentName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            clusterEventsJSON = "{\"error\": \"Deployment name is required for cluster events\"}"
+            return
+        }
+        
+        isLoadingEvents = true
+        
+        // Calculate time range
+        let toTime = Date()
+        let fromTime = toTime.addingTimeInterval(-TimeInterval(eventsDurationMinutes * 60))
+        
+        // Format times as 'YYYY-MM-DD HH:mm:ss.SSS'
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        dateFormatter.timeZone = TimeZone.current
+        
+        let toTimeStr = dateFormatter.string(from: toTime)
+        let fromTimeStr = dateFormatter.string(from: fromTime)
+        
+        // Build command string for display
+        let query = "select SYSTEM\\$EFDB_GET_CLUSTER_EVENTS('\(clusterName)', 'true', '\(fromTimeStr)', '\(toTimeStr)');"
+        let commandString = "efdb account --account=\(deploymentName) exec --query \"\(query)\""
+        
+        // Execute command
+        do {
+            let fullCommand = "efdb account --account=\(deploymentName) exec --query \"select SYSTEM\\$EFDB_GET_CLUSTER_EVENTS('\(clusterName)', 'true', '\(fromTimeStr)', '\(toTimeStr)');\""
+            
+            let output = try await executeCommandAction(fullCommand)
+            
+            // Apply line limiting if specified
+            let finalOutput: String
+            if let maxLines = Int(maxLinesEvents), maxLines > 0 {
+                finalOutput = limitJSONLines(output, maxLines: maxLines)
+            } else {
+                finalOutput = output
+            }
+            
+            // Format with command header
+            clusterEventsJSON = formatCommandOutput(command: commandString, output: finalOutput)
+            
+            // Log to history file
+            logCommandHistory(command: commandString, output: finalOutput)
+            
+            lastUpdateTime = Date()
+        } catch {
+            // Handle error appropriately
+            print("Cluster events error: \(error)")
+            let errorMsg = """
+            {
+              "error": "Failed to fetch cluster events",
+              "details": "\(error.localizedDescription)",
+              "cluster": "\(clusterName)"
+            }
+            """
+            clusterEventsJSON = formatCommandOutput(command: commandString, output: errorMsg)
+            logCommandHistory(command: commandString, output: "", error: error.localizedDescription)
+        }
+        
+        isLoadingEvents = false
+    }
+    
+    /// Fetch all data: tasks, status, cluster info, and events simultaneously
     func fetchAll() async {
-        // Fetch all three in parallel
+        // Fetch all four in parallel
         async let tasks = fetchShowAllTasks()
         async let status = fetchStatusJSON()
         async let info = fetchClusterInfo()
+        async let events = fetchClusterEvents()
         
         // Wait for all to complete
         await tasks
         await status
         await info
+        await events
     }
     
     /// Executes efdb command and returns JSON output
@@ -503,6 +578,7 @@ class ObjectViewModel: ObservableObject {
         clusterInfoJSON = ""
         showAllTasksJSON = ""
         statusJSON = ""
+        clusterEventsJSON = ""
         lastUpdateTime = nil
     }
     

@@ -108,6 +108,22 @@ struct InputPanel: View {
                         .textFieldStyle(.roundedBorder)
                 }
                 
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Max Lines (Events, 0=all):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Lines", text: $viewModel.maxLinesEvents)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Events Duration (minutes):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    TextField("Duration", value: $viewModel.eventsDurationMinutes, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
                 Toggle("Auto Refresh", isOn: $viewModel.autoRefresh)
                     .toggleStyle(.switch)
                 
@@ -165,7 +181,7 @@ struct InputPanel: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks || viewModel.isLoadingStatus)
+                .disabled(viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks || viewModel.isLoadingStatus || viewModel.isLoadingEvents)
                 
                 Button(action: {
                     viewModel.clearData()
@@ -188,7 +204,7 @@ struct InputPanel: View {
             Spacer()
             
             // Status indicator
-            if viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks || viewModel.isLoadingStatus {
+            if viewModel.isLoadingClusterInfo || viewModel.isLoadingTasks || viewModel.isLoadingStatus || viewModel.isLoadingEvents {
                 HStack {
                     ProgressView()
                         .scaleEffect(0.7)
@@ -316,41 +332,81 @@ struct DetailPanel: View {
             .frame(minHeight: 150)
             .border(Color.orange.opacity(0.3), width: 1)
             
-            // Bottom panel - Show All Tasks
-            VStack(alignment: .leading, spacing: 0) {
-                // Header
-                HStack {
-                    Text("Show All Tasks")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    Spacer()
-                    if viewModel.isLoadingTasks {
-                        ProgressView()
-                            .scaleEffect(0.6)
+            // Bottom panel - Split into Show All Tasks and Cluster Events
+            HSplitView {
+                // Left: Show All Tasks
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header
+                    HStack {
+                        Text("Show All Tasks")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if viewModel.isLoadingTasks {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        }
                     }
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(Color.green.opacity(0.15))
-                
-                // JSON display
-                if viewModel.showAllTasksJSON.isEmpty {
-                    VStack {
-                        Image(systemName: "list.bullet")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary)
-                        Text("No tasks loaded")
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    LargeTextView(text: viewModel.showAllTasksJSON, fontSize: viewModel.fontSize)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.green.opacity(0.15))
+                    
+                    // JSON display
+                    if viewModel.showAllTasksJSON.isEmpty {
+                        VStack {
+                            Image(systemName: "list.bullet")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text("No tasks loaded")
+                                .foregroundColor(.secondary)
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .focusable()
+                    } else {
+                        LargeTextView(text: viewModel.showAllTasksJSON, fontSize: viewModel.fontSize)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .focusable()
+                    }
                 }
+                .frame(minWidth: 200, minHeight: 150)
+                .border(Color.green.opacity(0.3), width: 1)
+                
+                // Right: Cluster Events
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header
+                    HStack {
+                        Text("Cluster Events")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        if viewModel.isLoadingEvents {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.yellow.opacity(0.15))
+                    
+                    // JSON display
+                    if viewModel.clusterEventsJSON.isEmpty {
+                        VStack {
+                            Image(systemName: "calendar.badge.clock")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                            Text("No events loaded")
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        LargeTextView(text: viewModel.clusterEventsJSON, fontSize: viewModel.fontSize)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .focusable()
+                    }
+                }
+                .frame(minWidth: 200, minHeight: 150)
+                .border(Color.yellow.opacity(0.3), width: 1)
             }
             .frame(minHeight: 150)
-            .border(Color.green.opacity(0.3), width: 1)
         }
     }
 }
