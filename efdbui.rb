@@ -7,8 +7,8 @@
 # 3. Users can install with: brew install sfc-gh-sramamoorthy/tap/efdbui
 
 cask "efdbui" do
-  version "1.0.0"
-  sha256 "b6828a13f76b1e37a126c44a3f03288891ff9922933f93c1e5a16e119c6d9c07"
+  version "1.0.1"
+  sha256 "393ced488c32f8d4c3cebf8a14107670ecc0062dc9727222a9e560d422911cde"
 
   url "https://github.com/sfc-gh-sramamoorthy/FDB_Control_Plane_UI/releases/download/v#{version}/EFDBUI-#{version}.tar.gz"
   name "EFDBUI"
