@@ -230,22 +230,17 @@ class ObjectViewModel: ObservableObject {
         isLoadingStatus = false
     }
     
-    /// Fetch all data: tasks, status, and cluster info with delays between them
+    /// Fetch all data: tasks, status, and cluster info simultaneously
     func fetchAll() async {
-        // Fetch show-all-tasks FIRST
-        await fetchShowAllTasks()
+        // Fetch all three in parallel
+        async let tasks = fetchShowAllTasks()
+        async let status = fetchStatusJSON()
+        async let info = fetchClusterInfo()
         
-        // Wait 10 seconds before fetching status-json
-        try? await Task.sleep(nanoseconds: 10_000_000_000)
-        
-        // Fetch status-json
-        await fetchStatusJSON()
-        
-        // Wait 10 seconds before fetching cluster info
-        try? await Task.sleep(nanoseconds: 10_000_000_000)
-        
-        // Then fetch cluster info
-        await fetchClusterInfo()
+        // Wait for all to complete
+        await tasks
+        await status
+        await info
     }
     
     /// Executes efdb command and returns JSON output
