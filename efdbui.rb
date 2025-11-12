@@ -7,8 +7,8 @@
 # 3. Users can install with: brew install sfc-gh-sramamoorthy/tap/efdbui
 
 cask "efdbui" do
-  version "1.0.1"
-  sha256 "393ced488c32f8d4c3cebf8a14107670ecc0062dc9727222a9e560d422911cde"
+  version "1.0.2"
+  sha256 "11c5d9629bb6dad6cdc5309f8c93174c65d09b1957826691cfaf825afc6daa8b"
 
   url "https://github.com/sfc-gh-sramamoorthy/FDB_Control_Plane_UI/releases/download/v#{version}/EFDBUI-#{version}.tar.gz"
   name "EFDBUI"
@@ -22,6 +22,13 @@ cask "efdbui" do
 
   # Optional: Create a CLI symlink
   binary "#{appdir}/EFDBUI.app/Contents/MacOS/EFDBUI", target: "efdbui"
+
+  # Install efdb CLI tool as a dependency
+  postflight do
+    system_command "/usr/local/bin/brew",
+                   args: ["install", "efdb"],
+                   print_stdout: true
+  end
 
   zap trash: [
     "~/Library/Preferences/com.efdb.ui.plist",
