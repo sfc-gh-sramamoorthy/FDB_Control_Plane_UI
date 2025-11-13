@@ -52,20 +52,90 @@ struct InputPanel: View {
             
             // Input fields
             VStack(alignment: .leading, spacing: 12) {
+                // Cluster Name with Autocomplete
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Cluster Name:")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     TextField("e.g., prod1fdb2", text: $viewModel.clusterName)
                         .textFieldStyle(.roundedBorder)
+                        .onChange(of: viewModel.clusterName) { newValue in
+                            viewModel.updateClusterSuggestions(for: newValue)
+                        }
+                    
+                    // Cluster suggestions
+                    if !viewModel.clusterSuggestions.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(viewModel.clusterSuggestions.prefix(5), id: \.self) { suggestion in
+                                Button(action: {
+                                    viewModel.selectClusterName(suggestion)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "server.rack")
+                                            .font(.caption2)
+                                        Text(suggestion)
+                                            .font(.caption)
+                                        Spacer()
+                                        if let deployment = viewModel.clusterDeploymentPairs.first(where: { $0.clusterName == suggestion })?.deploymentName {
+                                            Text(deployment)
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(4)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
                 
+                // Deployment Name with Autocomplete
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Deployment Name (optional):")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    TextField("e.g., production", text: $viewModel.deploymentName)
+                    HStack {
+                        Text("Deployment Name:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("*")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                    TextField("e.g., awsuswest2prod1", text: $viewModel.deploymentName)
                         .textFieldStyle(.roundedBorder)
+                        .onChange(of: viewModel.deploymentName) { newValue in
+                            viewModel.updateDeploymentSuggestions(for: newValue)
+                        }
+                    
+                    // Deployment suggestions
+                    if !viewModel.deploymentSuggestions.isEmpty {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(viewModel.deploymentSuggestions.prefix(5), id: \.self) { suggestion in
+                                Button(action: {
+                                    viewModel.selectDeploymentName(suggestion)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "cloud")
+                                            .font(.caption2)
+                                        Text(suggestion)
+                                            .font(.caption)
+                                        Spacer()
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(4)
+                            }
+                        }
+                        .padding(.top, 2)
+                    }
                 }
             }
             
@@ -438,6 +508,11 @@ struct ActionButtonsPanel: View {
                 Text("Enter cluster name to enable actions")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .italic()
+            } else if viewModel.deploymentName.trimmingCharacters(in: .whitespaces).isEmpty {
+                Text("Enter deployment name to enable actions")
+                    .font(.caption)
+                    .foregroundColor(.orange)
                     .italic()
             } else {
                 ForEach(CommandAction.allActions(for: viewModel.clusterName, deploymentName: viewModel.deploymentName)) { action in

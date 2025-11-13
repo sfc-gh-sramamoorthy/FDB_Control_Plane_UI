@@ -1,6 +1,13 @@
 import SwiftUI
 import Foundation
 
+/// Represents a cluster-deployment pair for autocomplete
+struct ClusterDeploymentPair: Identifiable {
+    let id = UUID()
+    let clusterName: String
+    let deploymentName: String
+}
+
 @MainActor
 class ObjectViewModel: ObservableObject {
     @Published var deploymentName: String = ""
@@ -32,6 +39,19 @@ class ObjectViewModel: ObservableObject {
     @Published var maxLinesEvents: String = "0"       // 0 = unlimited
     @Published var fontSize: CGFloat = 13.0           // Font size for text views
     @Published var eventsDurationMinutes: Int = 15    // Duration for cluster events (in minutes)
+    
+    // Autocomplete data
+    @Published var clusterSuggestions: [String] = []
+    @Published var deploymentSuggestions: [String] = []
+    
+    // Cluster-Deployment pairs for autocomplete
+    // TODO: Replace this with your actual cluster-deployment pairs
+    let clusterDeploymentPairs: [ClusterDeploymentPair] = [
+        ClusterDeploymentPair(clusterName: "prod1fdb2", deploymentName: "awsuswest2prod1"),
+        ClusterDeploymentPair(clusterName: "qa6fdb1", deploymentName: "awsuswest2qa6"),
+        ClusterDeploymentPair(clusterName: "dev3fdb1", deploymentName: "awsuswest2dev3"),
+        // Add more pairs here as needed
+    ]
     
     private var refreshTimer: Timer?
     
@@ -594,6 +614,63 @@ class ObjectViewModel: ObservableObject {
     
     func resetFontSize() {
         fontSize = 13.0  // Default
+    }
+    
+    // MARK: - Autocomplete Methods
+    
+    /// Update cluster name suggestions based on input
+    func updateClusterSuggestions(for input: String) {
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            clusterSuggestions = []
+            return
+        }
+        
+        clusterSuggestions = clusterDeploymentPairs
+            .map { $0.clusterName }
+            .filter { $0.lowercased().contains(trimmed.lowercased()) }
+            .sorted()
+    }
+    
+    /// Update deployment name suggestions based on input
+    func updateDeploymentSuggestions(for input: String) {
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            deploymentSuggestions = []
+            return
+        }
+        
+        deploymentSuggestions = clusterDeploymentPairs
+            .map { $0.deploymentName }
+            .filter { $0.lowercased().contains(trimmed.lowercased()) }
+            .sorted()
+            .reduce(into: [String]()) { result, deployment in
+                if !result.contains(deployment) {
+                    result.append(deployment)
+                }
+            }
+    }
+    
+    /// Auto-fill deployment name when cluster name is selected
+    func selectClusterName(_ cluster: String) {
+        clusterName = cluster
+        clusterSuggestions = []
+        
+        // Find matching deployment
+        if let pair = clusterDeploymentPairs.first(where: { $0.clusterName == cluster }) {
+            deploymentName = pair.deploymentName
+        }
+    }
+    
+    /// Auto-fill cluster name when deployment name is selected
+    func selectDeploymentName(_ deployment: String) {
+        deploymentName = deployment
+        deploymentSuggestions = []
+        
+        // Find first matching cluster (deployment can have multiple clusters)
+        if let pair = clusterDeploymentPairs.first(where: { $0.deploymentName == deployment }) {
+            clusterName = pair.clusterName
+        }
     }
 }
 
