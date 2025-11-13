@@ -904,15 +904,32 @@ class ObjectViewModel: ObservableObject {
     /// Update cluster name suggestions based on input
     func updateClusterSuggestions(for input: String) {
         let trimmed = input.trimmingCharacters(in: .whitespaces)
+        
+        // Clear suggestions first to ensure clean state
+        clusterSuggestions = []
+        
         if trimmed.isEmpty {
-            clusterSuggestions = []
+            deploymentName = ""
+            deploymentSuggestions = []
             return
         }
         
-        clusterSuggestions = clusterDeploymentPairs
+        // Check for exact match and auto-fill deployment
+        if let exactMatch = clusterDeploymentPairs.first(where: { $0.clusterName == trimmed }) {
+            deploymentName = exactMatch.deploymentName
+            // Clear deployment suggestions too since we auto-filled it
+            deploymentSuggestions = []
+            return
+        }
+        
+        // Show suggestions for partial matches (de-duplicated and sorted)
+        let matches = clusterDeploymentPairs
             .map { $0.clusterName }
             .filter { $0.lowercased().contains(trimmed.lowercased()) }
-            .sorted()
+        
+        // Remove duplicates while maintaining order
+        var seen = Set<String>()
+        clusterSuggestions = matches.filter { seen.insert($0).inserted }.sorted()
     }
     
     /// Update deployment name suggestions based on input
@@ -921,6 +938,19 @@ class ObjectViewModel: ObservableObject {
         if trimmed.isEmpty {
             deploymentSuggestions = []
             return
+        }
+        
+        // Check if the current cluster-deployment pair is valid (auto-filled correctly)
+        // If so, don't show suggestions
+        let clusterTrimmed = clusterName.trimmingCharacters(in: .whitespaces)
+        if !clusterTrimmed.isEmpty {
+            if let pair = clusterDeploymentPairs.first(where: { 
+                $0.clusterName == clusterTrimmed && $0.deploymentName == trimmed 
+            }) {
+                // Valid pair - deployment was auto-filled correctly, don't show suggestions
+                deploymentSuggestions = []
+                return
+            }
         }
         
         deploymentSuggestions = clusterDeploymentPairs
