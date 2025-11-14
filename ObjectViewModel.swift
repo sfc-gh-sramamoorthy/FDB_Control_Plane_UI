@@ -739,17 +739,47 @@ class ObjectViewModel: ObservableObject {
                 }
             }
             
-            // Timeout task (60 seconds)
+            // Timeout task (30 seconds)
             group.addTask {
-                try await Task.sleep(nanoseconds: 60_000_000_000)
+                try await Task.sleep(nanoseconds: 30_000_000_000)
                 print("🔴 Command timeout!")
-                throw CommandError.executionFailed("Command timed out after 60 seconds")
+                throw CommandError.executionFailed("Command timed out after 30 seconds. Check authentication or network connectivity.")
             }
             
             // Return first result (either completion or timeout)
+            do {
             let result = try await group.next()!
+                
+                // Cancel remaining tasks and kill process if needed
             group.cancelAll()
+                if process.isRunning {
+                    process.terminate()
+                    // Force kill if still running after 1 second
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
+                        if process.isRunning {
+                            kill(process.processIdentifier, SIGKILL)
+                        }
+                    }
+                }
+                
             return result
+            } catch {
+                // Ensure process is killed on error
+                if process.isRunning {
+                    process.terminate()
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) {
+                        if process.isRunning {
+                            kill(process.processIdentifier, SIGKILL)
+                        }
+                    }
+                }
+                
+                // Clean up temp files
+                try? FileManager.default.removeItem(at: outputFile)
+                try? FileManager.default.removeItem(at: errorFile)
+                
+                throw error
+            }
         }
     }
     
@@ -782,9 +812,9 @@ class ObjectViewModel: ObservableObject {
     /// - Parameters:
     ///   - command: The command to execute
     ///   - args: Arguments for the command
-    ///   - timeout: Maximum time to wait for command completion (default: 60 seconds)
+    ///   - timeout: Maximum time to wait for command completion (default: 30 seconds)
     /// - Returns: The command output as a string
-    private func executeShellCommand(_ command: String, args: [String] = [], timeout: TimeInterval = 60) async throws -> String {
+    private func executeShellCommand(_ command: String, args: [String] = [], timeout: TimeInterval = 30) async throws -> String {
         // Create temporary file for output
         let tempDir = FileManager.default.temporaryDirectory
         let outputFile = tempDir.appendingPathComponent("efdbui_output_\(UUID().uuidString).txt")
