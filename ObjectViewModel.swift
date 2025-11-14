@@ -8,6 +8,18 @@ struct ClusterDeploymentPair: Identifiable {
     let deploymentName: String
 }
 
+/// Search results across all panes
+struct SearchResults {
+    var clusterInfoMatches: Int = 0
+    var statusMatches: Int = 0
+    var tasksMatches: Int = 0
+    var eventsMatches: Int = 0
+    
+    var totalMatches: Int {
+        clusterInfoMatches + statusMatches + tasksMatches + eventsMatches
+    }
+}
+
 @MainActor
 class ObjectViewModel: ObservableObject {
     @Published var deploymentName: String = ""
@@ -39,6 +51,12 @@ class ObjectViewModel: ObservableObject {
     @Published var maxLinesEvents: String = "0"       // 0 = unlimited
     @Published var fontSize: CGFloat = 13.0           // Font size for text views
     @Published var eventsDurationMinutes: Int = 15    // Duration for cluster events (in minutes)
+    
+    // Search functionality
+    @Published var searchQuery: String = ""
+    @Published var searchMatchCount: Int = 0
+    @Published var searchResults: SearchResults = SearchResults()
+    @Published var searchIteration: Int = 0  // Increment to trigger next match
     
     // Autocomplete data
     @Published var clusterSuggestions: [String] = []
@@ -395,6 +413,7 @@ class ObjectViewModel: ObservableObject {
         // SECURITY: Validate inputs before processing
         guard !clusterName.trimmingCharacters(in: .whitespaces).isEmpty else {
             clusterInfoJSON = "{\"error\": \"Cluster name is required\"}"
+            isLoadingClusterInfo = false
             return
         }
         
@@ -444,6 +463,7 @@ class ObjectViewModel: ObservableObject {
         // SECURITY: Validate inputs before processing
         guard !clusterName.trimmingCharacters(in: .whitespaces).isEmpty else {
             showAllTasksJSON = "{\"error\": \"Cluster name is required\"}"
+            isLoadingTasks = false
             return
         }
         
@@ -493,6 +513,7 @@ class ObjectViewModel: ObservableObject {
         // SECURITY: Validate inputs before processing
         guard !clusterName.trimmingCharacters(in: .whitespaces).isEmpty else {
             statusJSON = "{\"error\": \"Cluster name is required\"}"
+            isLoadingStatus = false
             return
         }
         
@@ -542,11 +563,13 @@ class ObjectViewModel: ObservableObject {
         // SECURITY: Validate inputs before processing
         guard !clusterName.trimmingCharacters(in: .whitespaces).isEmpty else {
             clusterEventsJSON = "{\"error\": \"Cluster name is required\"}"
+            isLoadingEvents = false
             return
         }
         
         guard !deploymentName.trimmingCharacters(in: .whitespaces).isEmpty else {
             clusterEventsJSON = "{\"error\": \"Deployment name is required for cluster events\"}"
+            isLoadingEvents = false
             return
         }
         
@@ -899,6 +922,59 @@ class ObjectViewModel: ObservableObject {
         fontSize = 13.0  // Default
     }
     
+    // MARK: - Search Methods
+    
+    /// Perform search across all panes
+    func performSearch() {
+        let query = searchQuery.trimmingCharacters(in: .whitespaces)
+        
+        guard !query.isEmpty else {
+            searchResults = SearchResults()
+            searchMatchCount = 0
+            return
+        }
+        
+        let lowercasedQuery = query.lowercased()
+        
+        // Count matches in each pane (case-insensitive)
+        searchResults.clusterInfoMatches = countMatches(in: clusterInfoJSON, query: lowercasedQuery)
+        searchResults.statusMatches = countMatches(in: statusJSON, query: lowercasedQuery)
+        searchResults.tasksMatches = countMatches(in: showAllTasksJSON, query: lowercasedQuery)
+        searchResults.eventsMatches = countMatches(in: clusterEventsJSON, query: lowercasedQuery)
+        
+        searchMatchCount = searchResults.totalMatches
+    }
+    
+    /// Count occurrences of query in text
+    private func countMatches(in text: String, query: String) -> Int {
+        let lowercasedText = text.lowercased()
+        var count = 0
+        var searchRange = lowercasedText.startIndex..<lowercasedText.endIndex
+        
+        while let range = lowercasedText.range(of: query, range: searchRange) {
+            count += 1
+            searchRange = range.upperBound..<lowercasedText.endIndex
+        }
+        
+        return count
+    }
+    
+    /// Clear search
+    func clearSearch() {
+        searchQuery = ""
+        searchResults = SearchResults()
+        searchMatchCount = 0
+        searchIteration = 0
+    }
+    
+    /// Go to next search match
+    func nextSearchMatch() {
+        guard !searchQuery.isEmpty, searchMatchCount > 0 else {
+            return
+        }
+        searchIteration += 1
+    }
+    
     // MARK: - Autocomplete Methods
     
     /// Update cluster name suggestions based on input
@@ -906,7 +982,7 @@ class ObjectViewModel: ObservableObject {
         let trimmed = input.trimmingCharacters(in: .whitespaces)
         
         // Clear suggestions first to ensure clean state
-        clusterSuggestions = []
+            clusterSuggestions = []
         
         if trimmed.isEmpty {
             deploymentName = ""

@@ -20,8 +20,13 @@ struct ContentView: View {
     }
     
     private func setupKeyboardShortcuts() {
-        // Add keyboard shortcuts for font size
+        // Add keyboard shortcuts for font size - only when app is active
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            // Only handle events when our app is active
+            guard NSApplication.shared.isActive else {
+                return event
+            }
+            
             if event.modifierFlags.contains(.command) {
                 if event.charactersIgnoringModifiers == "+" || event.charactersIgnoringModifiers == "=" {
                     viewModel.increaseFontSize()
@@ -331,7 +336,16 @@ struct DetailPanel: View {
     @ObservedObject var viewModel: ObjectViewModel
     
     var body: some View {
-        VSplitView {
+        VStack(spacing: 0) {
+            // Search bar at the top
+            SearchBar(viewModel: viewModel)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(NSColor.controlBackgroundColor))
+            
+            Divider()
+            
+            VSplitView {
             // Top panel - Split into Cluster Info and Status JSON
             HSplitView {
                 // Left: Cluster Info
@@ -362,9 +376,8 @@ struct DetailPanel: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        LargeTextView(text: viewModel.clusterInfoJSON, fontSize: viewModel.fontSize)
+                        LargeTextView(text: viewModel.clusterInfoJSON, fontSize: viewModel.fontSize, searchQuery: viewModel.searchQuery, searchIteration: viewModel.searchIteration)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .focusable()
                     }
                 }
                 .frame(minWidth: 200, minHeight: 150)
@@ -398,9 +411,8 @@ struct DetailPanel: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        LargeTextView(text: viewModel.statusJSON, fontSize: viewModel.fontSize)
+                        LargeTextView(text: viewModel.statusJSON, fontSize: viewModel.fontSize, searchQuery: viewModel.searchQuery, searchIteration: viewModel.searchIteration)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .focusable()
                     }
                 }
                 .frame(minWidth: 200, minHeight: 150)
@@ -438,9 +450,8 @@ struct DetailPanel: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        LargeTextView(text: viewModel.showAllTasksJSON, fontSize: viewModel.fontSize)
+                        LargeTextView(text: viewModel.showAllTasksJSON, fontSize: viewModel.fontSize, searchQuery: viewModel.searchQuery, searchIteration: viewModel.searchIteration)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .focusable()
                     }
                 }
                 .frame(minWidth: 200, minHeight: 150)
@@ -474,15 +485,15 @@ struct DetailPanel: View {
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        LargeTextView(text: viewModel.clusterEventsJSON, fontSize: viewModel.fontSize)
+                        LargeTextView(text: viewModel.clusterEventsJSON, fontSize: viewModel.fontSize, searchQuery: viewModel.searchQuery, searchIteration: viewModel.searchIteration)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .focusable()
                     }
                 }
                 .frame(minWidth: 200, minHeight: 150)
                 .border(Color.yellow.opacity(0.3), width: 1)
             }
             .frame(minHeight: 150)
+        }
         }
     }
 }
@@ -784,6 +795,120 @@ struct EnhancedConfirmationDialog: View {
         }
         .padding(32)
         .frame(width: 650)
+    }
+}
+
+// MARK: - Search Bar
+struct SearchBar: View {
+    @ObservedObject var viewModel: ObjectViewModel
+    @State private var searchText: String = ""
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            
+            TextField("Search across all panes (press Enter)...", text: $searchText)
+                .textFieldStyle(.plain)
+                .onSubmit {
+                    if searchText == viewModel.searchQuery {
+                        // Same query - go to next match
+                        viewModel.nextSearchMatch()
+                    } else {
+                        // New query - perform search
+                        viewModel.searchQuery = searchText
+                        viewModel.performSearch()
+                    }
+                }
+            
+            // Search button
+            if !searchText.isEmpty && searchText != viewModel.searchQuery {
+                Button(action: {
+                    viewModel.searchQuery = searchText
+                    viewModel.performSearch()
+                }) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                .help("Search (or press Enter)")
+            }
+            
+            if !viewModel.searchQuery.isEmpty {
+                // Match count
+                if viewModel.searchMatchCount > 0 {
+                    HStack(spacing: 4) {
+                        Text("\(viewModel.searchMatchCount)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                        Text(viewModel.searchMatchCount == 1 ? "match" : "matches")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        // Breakdown by pane
+                        if viewModel.searchResults.totalMatches > 0 {
+                            Text("•")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 6) {
+                                if viewModel.searchResults.clusterInfoMatches > 0 {
+                                    HStack(spacing: 2) {
+                                        Circle()
+                                            .fill(Color.blue)
+                                            .frame(width: 6, height: 6)
+                                        Text("\(viewModel.searchResults.clusterInfoMatches)")
+                                            .font(.caption2)
+                                    }
+                                }
+                                if viewModel.searchResults.statusMatches > 0 {
+                                    HStack(spacing: 2) {
+                                        Circle()
+                                            .fill(Color.orange)
+                                            .frame(width: 6, height: 6)
+                                        Text("\(viewModel.searchResults.statusMatches)")
+                                            .font(.caption2)
+                                    }
+                                }
+                                if viewModel.searchResults.tasksMatches > 0 {
+                                    HStack(spacing: 2) {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 6, height: 6)
+                                        Text("\(viewModel.searchResults.tasksMatches)")
+                                            .font(.caption2)
+                                    }
+                                }
+                                if viewModel.searchResults.eventsMatches > 0 {
+                                    HStack(spacing: 2) {
+                                        Circle()
+                                            .fill(Color.yellow)
+                                            .frame(width: 6, height: 6)
+                                        Text("\(viewModel.searchResults.eventsMatches)")
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Clear button
+                Button(action: {
+                    searchText = ""
+                    viewModel.clearSearch()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear search")
+            }
+        }
+        .padding(8)
+        .background(Color(NSColor.textBackgroundColor))
+        .cornerRadius(6)
     }
 }
 
