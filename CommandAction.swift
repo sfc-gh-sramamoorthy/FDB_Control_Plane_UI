@@ -107,19 +107,12 @@ extension CommandAction {
     }
     
     /// Include a machine in the cluster using sanssh
-    static func includeMachine(clusterName: String) -> CommandAction {
+    static func includeMachine(clusterName: String, deploymentName: String) -> CommandAction {
         CommandAction(
             name: "sanssh include",
             icon: "checkmark.circle",
-            description: "Add a machine back to the cluster using sanssh fdbexec",
+            description: "Add a machine back to the cluster using sanssh fdbexec (uses deployment: \(deploymentName))",
             arguments: [
-                ArgumentPrompt(
-                    key: "deployment-name",
-                    label: "Deployment Name",
-                    placeholder: "e.g., prod1",
-                    isRequired: true,
-                    helpText: "The deployment name for sanssh --deployment parameter"
-                ),
                 ArgumentPrompt(
                     key: "host-ip-address",
                     label: "Host IP Address",
@@ -143,8 +136,7 @@ extension CommandAction {
                 )
             ],
             buildCommand: { args in
-                guard let deploymentName = args["deployment-name"],
-                      let hostIp = args["host-ip-address"],
+                guard let hostIp = args["host-ip-address"],
                       let justification = args["justification"],
                       let targetIp = args["target-ip-address"] else { return "" }
                 return "sanssh --deployment \(deploymentName) --targets=\(hostIp) --justification \"\(justification)\" fdbexec run /usr/bin/fdbcli --exec \"include \(targetIp)\""
@@ -217,19 +209,12 @@ extension CommandAction {
     }
     
     /// Mark instance unreachable
-    static func markInstanceUnreachable(clusterName: String) -> CommandAction {
+    static func markInstanceUnreachable(clusterName: String, deploymentName: String) -> CommandAction {
         CommandAction(
             name: "Mark Instance Unreachable",
             icon: "exclamationmark.triangle",
-            description: "Override and mark an instance as unresponsive",
+            description: "Override and mark an instance as unresponsive (uses deployment: \(deploymentName))",
             arguments: [
-                ArgumentPrompt(
-                    key: "deployment-name",
-                    label: "Deployment Name",
-                    placeholder: "e.g., azwesteurope",
-                    isRequired: true,
-                    helpText: "The deployment/account name"
-                ),
                 ArgumentPrompt(
                     key: "instance-id",
                     label: "Instance ID",
@@ -239,8 +224,7 @@ extension CommandAction {
                 )
             ],
             buildCommand: { args in
-                guard let deploymentName = args["deployment-name"],
-                      let instanceId = args["instance-id"] else { return "" }
+                guard let instanceId = args["instance-id"] else { return "" }
                 return "efdb account --account=\(deploymentName) exec --query \"select system\\$EFDB_OPERATOR_OVERRIDE_UNRESPONSIVE_HOST('\(clusterName)', '\(instanceId)');\""
             },
             isDestructive: true
@@ -248,11 +232,11 @@ extension CommandAction {
     }
     
     /// Replace instance
-    static func replaceInstance(clusterName: String) -> CommandAction {
+    static func replaceInstance(clusterName: String, deploymentName: String) -> CommandAction {
         CommandAction(
             name: "Replace Instance",
             icon: "arrow.triangle.swap",
-            description: "Replace an instance in the cluster",
+            description: "Replace an instance in the cluster (uses deployment: \(deploymentName))",
             arguments: [
                 ArgumentPrompt(
                     key: "ip-address",
@@ -278,11 +262,11 @@ extension CommandAction {
             unpauseCluster(clusterName: clusterName),
             abortAllTasks(clusterName: clusterName),
             excludeMachine(clusterName: clusterName),
-            includeMachine(clusterName: clusterName),
+            includeMachine(clusterName: clusterName, deploymentName: deploymentName),
             stopTopologyChange(clusterName: clusterName),
             reimportCluster(clusterName: clusterName),
-            markInstanceUnreachable(clusterName: clusterName),
-            replaceInstance(clusterName: clusterName)
+            markInstanceUnreachable(clusterName: clusterName, deploymentName: deploymentName),
+            replaceInstance(clusterName: clusterName, deploymentName: deploymentName)
         ]
     }
 }
