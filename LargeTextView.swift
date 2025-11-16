@@ -71,9 +71,8 @@ struct LargeTextView: NSViewRepresentable {
             return
         }
         
-        if textView.string != text {
-            textView.string = text
-        }
+        // ALWAYS update text (don't rely on equality check)
+        textView.string = text
         
         // Update font size if it changed
         if textView.font?.pointSize != fontSize {

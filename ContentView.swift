@@ -425,14 +425,103 @@ struct DetailPanel: View {
                 // Left: Show All Tasks
                 VStack(alignment: .leading, spacing: 0) {
                     // Header
-                    HStack {
-                        Text("Show All Tasks")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        if viewModel.isLoadingTasks {
-                            ProgressView()
-                                .scaleEffect(0.6)
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("Show All Tasks")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            // Filter button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    viewModel.showTaskFilters.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "line.3.horizontal.decrease.circle")
+                                        .font(.system(size: 12))
+                                    Text("Filter")
+                                        .font(.system(size: 11))
+                                }
+                                .foregroundColor(viewModel.filterBackgroundTasks || !viewModel.customTaskFilters.isEmpty ? .white : .primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(viewModel.filterBackgroundTasks || !viewModel.customTaskFilters.isEmpty ? Color.blue : Color.secondary.opacity(0.2))
+                                .cornerRadius(4)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .help("Toggle task filters")
+                            
+                            if viewModel.isLoadingTasks {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                            }
+                        }
+                        
+                        // Collapsible filter controls
+                        if viewModel.showTaskFilters {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Divider()
+                                    .padding(.vertical, 4)
+                                
+                                // Background tasks filter
+                                HStack {
+                                    Toggle("Filter DELETE_INSTANCE", isOn: $viewModel.filterBackgroundTasks)
+                                        .toggleStyle(CheckboxToggleStyle())
+                                        .font(.system(size: 11))
+                                        .onChange(of: viewModel.filterBackgroundTasks) { _ in
+                                            viewModel.refreshTaskFilters()
+                                        }
+                                    Spacer()
+                                }
+                                
+                                // Custom task type filters
+                                HStack(spacing: 4) {
+                                    Text("Filter types:")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                    TextField("e.g., BACKUP, RESTORE", text: $viewModel.customTaskFilters)
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                                        .font(.system(size: 11))
+                                        .frame(maxWidth: .infinity)
+                                }
+                                
+                                // Apply button
+                                HStack {
+                                    Spacer()
+                                    Button(action: {
+                                        viewModel.refreshTaskFilters()
+                                    }) {
+                                        Text("Apply Filters")
+                                            .font(.system(size: 11))
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(viewModel.unfilteredTasksJSON.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(4)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .disabled(viewModel.unfilteredTasksJSON.isEmpty)
+                                    
+                                    if viewModel.unfilteredTasksJSON.isEmpty {
+                                        Text("(Load tasks first)")
+                                            .font(.system(size: 9))
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                                
+                                // Status message
+                                if !viewModel.filterStatusMessage.isEmpty {
+                                    Text(viewModel.filterStatusMessage)
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.blue)
+                                        .padding(.top, 4)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 6)
                         }
                     }
                     .padding(.vertical, 8)
@@ -452,6 +541,7 @@ struct DetailPanel: View {
                     } else {
                         LargeTextView(text: viewModel.showAllTasksJSON, fontSize: viewModel.fontSize, searchQuery: viewModel.searchQuery, searchIteration: viewModel.searchIteration)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .id(viewModel.taskViewRefreshCounter) // Force view rebuild when counter changes
                     }
                 }
                 .frame(minWidth: 200, minHeight: 150)

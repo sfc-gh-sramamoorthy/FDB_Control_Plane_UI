@@ -52,6 +52,14 @@ class ObjectViewModel: ObservableObject {
     @Published var fontSize: CGFloat = 13.0           // Font size for text views
     @Published var eventsDurationMinutes: Int = 15    // Duration for cluster events (in minutes)
     
+    // Task filtering properties
+    @Published var showTaskFilters: Bool = false      // Toggle visibility of filter controls
+    @Published var filterBackgroundTasks: Bool = false // Filter out DELETE_INSTANCE tasks
+    @Published var customTaskFilters: String = ""     // Comma-separated task types to filter
+    @Published var filterStatusMessage: String = ""   // Status message for filter operations
+    @Published var taskViewRefreshCounter: Int = 0    // Increment to force view rebuild
+    var unfilteredTasksJSON: String = ""              // Store original unfiltered data
+    
     // Search functionality
     @Published var searchQuery: String = ""
     @Published var searchMatchCount: Int = 0
@@ -484,8 +492,12 @@ class ObjectViewModel: ObservableObject {
                 finalOutput = output
             }
             
-            // Format with command header
-            showAllTasksJSON = formatCommandOutput(command: commandString, output: finalOutput)
+            // Format with command header and store unfiltered
+            let formattedOutput = formatCommandOutput(command: commandString, output: finalOutput)
+            unfilteredTasksJSON = formattedOutput
+            
+            // Apply filters if enabled
+            showAllTasksJSON = applyTaskFilters(formattedOutput)
             
             // Log to history file
             logCommandHistory(command: commandString, output: finalOutput)
@@ -501,11 +513,134 @@ class ObjectViewModel: ObservableObject {
               "cluster": "\(clusterName)"
             }
             """
-            showAllTasksJSON = formatCommandOutput(command: commandString, output: errorMsg)
+            let formattedError = formatCommandOutput(command: commandString, output: errorMsg)
+            unfilteredTasksJSON = formattedError
+            showAllTasksJSON = formattedError
             logCommandHistory(command: commandString, output: "", error: error.localizedDescription)
         }
         
         isLoadingTasks = false
+    }
+    
+    /// Apply task filters to the tasks JSON output
+    func applyTaskFilters(_ tasksJSON: String) -> String {
+        // If no filters are active, return original
+        guard filterBackgroundTasks || !customTaskFilters.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return tasksJSON
+        }
+        
+        // Extract the actual JSON content (after the command header)
+        let lines = tasksJSON.components(separatedBy: "\n")
+        var headerLines: [String] = []
+        var jsonStartIndex = 0
+        
+        // Find where JSON starts (after "COMMAND:" and "OUTPUT:" lines)
+        for (index, line) in lines.enumerated() {
+            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+            if trimmedLine == "OUTPUT:" {
+                // JSON starts after the blank line following OUTPUT:
+                jsonStartIndex = index + 2  // Skip OUTPUT: and blank line
+                headerLines = Array(lines[0...index])
+                break
+            }
+        }
+        
+        // Get the JSON portion
+        let jsonLines = Array(lines[jsonStartIndex...])
+        let jsonString = jsonLines.joined(separator: "\n")
+        
+        // Parse JSON to filter tasks
+        guard let jsonData = jsonString.data(using: .utf8),
+              let jsonArray = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] else {
+            // If parsing fails, return original
+            return tasksJSON
+        }
+        
+        // Build list of task types to filter out
+        var filterTypes = Set<String>()
+        if filterBackgroundTasks {
+            filterTypes.insert("DELETE_INSTANCE")
+        }
+        if !customTaskFilters.trimmingCharacters(in: .whitespaces).isEmpty {
+            let customTypes = customTaskFilters.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).uppercased() }
+            filterTypes.formUnion(customTypes)
+        }
+        
+        // Filter out tasks
+        let filteredTasks = jsonArray.filter { task in
+            // Try multiple possible field names for task type
+            let taskType = task["type"] as? String ?? 
+                          task["Type"] as? String ?? 
+                          task["task_type"] as? String ??
+                          task["taskType"] as? String
+            
+            if let type = taskType {
+                let shouldFilter = filterTypes.contains(type.uppercased())
+                return !shouldFilter
+            }
+            
+            // If no type field found, keep the task
+            return true
+        }
+        
+        // Convert back to JSON
+        guard let filteredData = try? JSONSerialization.data(withJSONObject: filteredTasks, options: [.prettyPrinted]),
+              let filteredString = String(data: filteredData, encoding: .utf8) else {
+            return tasksJSON
+        }
+        
+        // Rebuild with header and add filter note
+        var result = headerLines.joined(separator: "\n")
+        if !headerLines.isEmpty {
+            result += "\n"
+        }
+        result += "################################################################################\n"
+        result += "# FILTERS APPLIED\n"
+        result += "# Removed task types: \(filterTypes.sorted().joined(separator: ", "))\n"
+        result += "# Original task count: \(jsonArray.count)\n"
+        result += "# Filtered task count: \(filteredTasks.count)\n"
+        result += "# Tasks removed: \(jsonArray.count - filteredTasks.count)\n"
+        result += "################################################################################\n"
+        result += filteredString
+        
+        return result
+    }
+    
+    /// Reapply filters to current tasks data
+    func refreshTaskFilters() {
+        // Update status message to show button was clicked
+        DispatchQueue.main.async {
+            self.filterStatusMessage = "🔄 Applying filters..."
+        }
+        
+        guard !unfilteredTasksJSON.isEmpty else {
+            // Show message in the UI (on main thread)
+            DispatchQueue.main.async {
+                self.filterStatusMessage = "❌ No tasks loaded! Load tasks first."
+                self.showAllTasksJSON = "# ERROR: No tasks loaded yet. Please load tasks first by clicking 'Show All Tasks'."
+            }
+            return
+        }
+        
+        let filtered = applyTaskFilters(unfilteredTasksJSON)
+        
+        // Update UI on main thread
+        DispatchQueue.main.async {
+            // Force UI refresh by explicitly triggering objectWillChange
+            self.objectWillChange.send()
+            self.showAllTasksJSON = filtered
+            
+            // Increment counter to force view rebuild
+            self.taskViewRefreshCounter += 1
+            
+            let removedCount = self.unfilteredTasksJSON.count - filtered.count
+            self.filterStatusMessage = "✅ Filters applied! Removed \(removedCount) chars"
+            
+            // Clear status message after 3 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                self.filterStatusMessage = ""
+            }
+        }
     }
     
     /// Fetches status-json information
