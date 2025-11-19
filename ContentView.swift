@@ -554,6 +554,10 @@ struct DetailPanel: View {
                         Text("Cluster Events")
                             .font(.headline)
                             .foregroundColor(.primary)
+                        Image(systemName: "clock.badge.checkmark")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                            .help("Using deployment's current time (not local Mac time)")
                         Spacer()
                         if viewModel.isLoadingEvents {
                             ProgressView()

@@ -710,15 +710,55 @@ class ObjectViewModel: ObservableObject {
         
         isLoadingEvents = true
         
-        // Calculate time range
-        let toTime = Date()
-        let fromTime = toTime.addingTimeInterval(-TimeInterval(eventsDurationMinutes * 60))
+        // Step 1: Get deployment's current time (not Mac's local time!)
+        let getCurrentTimeQuery = "select current_timestamp();"
+        let getCurrentTimeCommand = "efdb account --account=\(deploymentName) exec --query \"\(getCurrentTimeQuery)\""
         
-        // Format times as 'YYYY-MM-DD HH:mm:ss.SSS'
+        let deploymentTimeStr: String
+        do {
+            let timeOutput = try await executeCommandAction(getCurrentTimeCommand)
+            // Parse the output to extract timestamp (format: "2025-11-18 22:54:41.123")
+            // The output might have headers/formatting, so extract the timestamp
+            let lines = timeOutput.components(separatedBy: "\n")
+            if let timestampLine = lines.first(where: { $0.contains("-") && $0.contains(":") && !$0.contains("OUTPUT") }) {
+                deploymentTimeStr = timestampLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                throw NSError(domain: "EFDBUI", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not parse deployment timestamp"])
+            }
+        } catch {
+            // Fallback to local time with a warning
+            print("Warning: Could not get deployment time, falling back to local time: \(error)")
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
         dateFormatter.timeZone = TimeZone.current
+            deploymentTimeStr = dateFormatter.string(from: Date())
+        }
         
+        // Step 2: Parse deployment time and calculate fromTime
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        dateFormatter.timeZone = TimeZone(identifier: "UTC") ?? TimeZone.current
+        
+        // If the timestamp doesn't have milliseconds, try without them
+        var toTime: Date
+        if let parsed = dateFormatter.date(from: deploymentTimeStr) {
+            toTime = parsed
+        } else {
+            dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            if let parsed = dateFormatter.date(from: deploymentTimeStr) {
+                toTime = parsed
+            } else {
+                // Last fallback
+                print("Warning: Could not parse '\(deploymentTimeStr)', using current time")
+                toTime = Date()
+            }
+        }
+        
+        // Calculate fromTime by subtracting the duration
+        let fromTime = toTime.addingTimeInterval(-TimeInterval(eventsDurationMinutes * 60))
+        
+        // Format times back to string for the query
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
         let toTimeStr = dateFormatter.string(from: toTime)
         let fromTimeStr = dateFormatter.string(from: fromTime)
         
